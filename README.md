@@ -57,26 +57,166 @@ node tools/discover.mjs       # free — see what's out there right now
 Discovery makes **no model calls at all**, so run it as often as you like. Only
 the reading and drafting stage costs anything.
 
-## Running it unattended
+## Hosting it on a Bluehost VPS
 
-This is the part that wants an always-on box rather than a laptop. The pattern
-is the same anywhere you can run a scheduled job:
+This is where it belongs — an agent that only works when your laptop is open
+isn't doing the thing it was built for. The whole setup is about fifteen minutes.
 
-```cron
-# every night at 23:00
-0 23 * * *  cd /srv/nightshift && /path/to/agent run /nightshift >> run/night.log 2>&1
+Nightshift is deliberately light: **one npm dependency, no browser, no build
+step, no database.** That matters for what you need to rent.
+
+### 1. Pick a plan
+
+**The 2GB NVMe plan is enough.** Node plus a nightly agent run is a small
+workload — there's no Chromium to install and nothing to compile. Take a bigger
+plan if you intend to run other things on the same box, not for this.
+
+Provision it with **Ubuntu** (22.04 or 24.04 LTS) and grab the server IP and
+root password from your Bluehost control panel. Bluehost VPS is self-managed
+with full root, which is exactly what this needs — you're configuring the
+environment yourself.
+
+### 2. Connect and make a working user
+
+Don't run the agent as root.
+
+```bash
+ssh root@YOUR_SERVER_IP
+
+adduser nightshift
+usermod -aG sudo nightshift
+
+# Copy your SSH key over so you can log in without the root password
+rsync --archive --chown=nightshift:nightshift ~/.ssh /home/nightshift/
+
+exit
+ssh nightshift@YOUR_SERVER_IP
 ```
 
-Point `<agent>` at whichever runtime you're using. Two things to get right:
+While you're here, basic hygiene:
 
-- **`.env` needs to be readable by the scheduled job.** Cron does not inherit
-  your shell's environment — this is the single most common reason a nightly run
-  works by hand and silently does nothing at 3am.
-- **Set a spend limit** on your API key before the first unattended night. A run
-  that loops unnoticed is the one expensive failure mode here.
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo ufw allow OpenSSH && sudo ufw --force enable
+```
 
-Check it worked: `run/<date>/report.html` should exist in the morning, and
-`run/night.log` will tell you what happened if it doesn't.
+### 3. Install Node and Claude Code
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs git
+node --version                       # expect v20.x
+
+sudo npm install -g @anthropic-ai/claude-code
+claude --version
+```
+
+### 4. Get Nightshift onto the box
+
+```bash
+sudo mkdir -p /srv && sudo chown nightshift:nightshift /srv
+git clone https://github.com/rafcopy/nightshift.git /srv/nightshift
+cd /srv/nightshift
+npm install
+```
+
+### 5. Keys and spend limit
+
+**Set a spend limit before the first unattended night**, at
+[console.anthropic.com](https://console.anthropic.com/settings/limits). An
+unattended job is the one place a runaway loop goes unnoticed until the bill
+arrives.
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+GITHUB_TOKEN=ghp_...        # optional: 60 -> 5000 GitHub requests/hour
+```
+
+```bash
+chmod 600 .env              # readable only by you
+```
+
+### 6. Build your profile
+
+```bash
+cd /srv/nightshift && claude
+```
+
+Run `/setup` and answer the questions, then exit. Or copy the example and edit
+it by hand:
+
+```bash
+cp profile.example.yaml profile.yaml && nano profile.yaml
+```
+
+### 7. Prove it works before trusting it to cron
+
+```bash
+node tools/discover.mjs      # free — no model calls. Should print a shortlist.
+./bin/night.sh               # the real thing, once, while you watch
+```
+
+If discovery returns nothing, the profile's `skills` or `avoid` lists are too
+narrow — fix that before scheduling. If `night.sh` fails, it tells you which of
+the API key or profile is missing.
+
+### 8. Schedule it
+
+```bash
+crontab -e
+```
+
+```cron
+0 23 * * *  /srv/nightshift/bin/night.sh >> /srv/nightshift/run/night.log 2>&1
+```
+
+Cron runs in UTC unless the server says otherwise — set the box to your timezone
+so "23:00" means what you think:
+
+```bash
+sudo timedatectl set-timezone Asia/Kolkata
+```
+
+**`bin/night.sh` exists precisely because cron does not inherit your shell
+environment.** Calling `claude` straight from a crontab works when you test it
+by hand and then silently does nothing at 3am, because `ANTHROPIC_API_KEY`
+isn't set. The runner sources `.env` explicitly.
+
+### 9. Read it in the morning
+
+Simplest — pull the report to your laptop:
+
+```bash
+scp nightshift@YOUR_SERVER_IP:/srv/nightshift/run/*/report.html ~/Desktop/
+```
+
+Or, since you're already paying for a machine that serves web pages, let it
+serve the report:
+
+```bash
+sudo apt install -y nginx apache2-utils
+sudo htpasswd -c /etc/nginx/.htpasswd you        # don't leave this public
+```
+
+Point an nginx site at `/srv/nightshift/run`, put it behind that basic-auth
+file, and your morning read is a bookmark instead of an scp. **Add the password
+file** — the report contains what you're applying for.
+
+### Checking on it
+
+```bash
+tail -50 /srv/nightshift/run/night.log      # what happened last night
+ls -la /srv/nightshift/run/                 # one directory per night
+```
+
+If a morning comes and there's no new directory, the log says why. The usual
+causes are a missing `.env`, an exhausted spend limit, or a source API being
+down — and the run is built to survive that last one.
 
 ## Sources
 

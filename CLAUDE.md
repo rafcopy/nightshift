@@ -12,6 +12,7 @@ tools/discover.mjs   runs all sources -> run/<date>/shortlist.json. NO model cal
 tools/annotate.mjs   agent writes verdicts/drafts back into the run
 tools/report.mjs     renders the morning page. NO model calls
 .claude/commands/    setup, nightshift (the run), review (the morning)
+bin/night.sh         cron entrypoint; sources .env then calls `claude -p`
 ```
 
 **Only the agent stage costs money.** Discovery, scoring and reporting are plain
@@ -34,6 +35,19 @@ agents; GitHub, HN Algolia and RemoteOK all publish the endpoints used here.
 
 **The run must survive a dead source.** `discover.mjs` catches per-source
 failures. One API being down at 3am must never lose the night.
+
+## Unattended runs
+
+`bin/night.sh` is what cron calls. It exists because cron does not inherit the
+shell environment — calling `claude` straight from a crontab works by hand and
+then silently does nothing overnight, with no error, because the API key is not
+set. Any change to how the night run is invoked goes in that script.
+
+Tool approvals come from `.claude/settings.json`, which allowlists exactly what
+the run needs, plus `--permission-mode acceptEdits` so nothing blocks on a
+prompt at 3am. **Do not switch this to `--dangerously-skip-permissions`** — the
+box has internet access and holds an API key, which is the exact situation that
+flag warns against.
 
 ## Staleness is the quiet failure
 
