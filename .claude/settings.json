@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Bash(node tools/discover.mjs:*)",
+      "Bash(node tools/report.mjs:*)",
+      "Bash(node tools/annotate.mjs:*)",
+      "Bash(npm install)",
+      "Bash(mkdir -p run/*)",
+      "Bash(ls:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)",
+      "Read(./.env)"
+    ]
+  }
+}

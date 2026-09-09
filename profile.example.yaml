@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------
+# Nightshift profile — copy to `profile.yaml` and make it yours.
+#
+#   cp profile.example.yaml profile.yaml
+#
+# This is what the agent uses to judge whether an opportunity is worth your
+# time. The more honest it is, the fewer bad matches you wake up to.
+#
+# `profile.yaml` is gitignored.
+# ---------------------------------------------------------------------------
+
+identity:
+  name: Neeraj Walia
+  github: rafcopy
+  email: you@example.com
+  timezone: Asia/Kolkata
+  links:
+    - https://github.com/rafcopy
+
+# ---------------------------------------------------------------------------
+# What you can actually do. Be honest — "familiar" is not "strong".
+# The agent weights strong skills heavily and treats `learning` as a tiebreak,
+# never as a reason to recommend something.
+# ---------------------------------------------------------------------------
+skills:
+  strong:   [JavaScript, TypeScript, Node.js, React, Python]
+  working:  [PostgreSQL, Docker, REST APIs, Next.js]
+  learning: [Rust, Go]
+
+# ---------------------------------------------------------------------------
+# Evidence. The agent cites these when drafting, so a proposal can point at
+# something real instead of making a claim. Ship-worthy work only.
+# ---------------------------------------------------------------------------
+work:
+  - name: ezSnippet
+    what: Developer-focused content and tooling
+    stack: [JavaScript, Node.js]
+    url: https://github.com/rafcopy
+    highlight: >
+      Built and shipped developer tools used by an audience of engineers.
+
+# ---------------------------------------------------------------------------
+# What you want. This is the filter that decides what you see in the morning.
+# ---------------------------------------------------------------------------
+wants:
+  types: [bounty, contract, remote_job, hackathon]
+
+  bounty:
+    min_usd: 100             # below this, not worth the context switch
+    max_effort_hours: 8      # skip anything that reads like a week of work
+
+  contract:
+    min_hourly_usd: 40
+    remote_only: true
+
+  hackathon:
+    min_prize_usd: 500
+    online_only: false       # true if you will not travel
+
+  # Substrings matched against titles, tags and descriptions.
+  interested_in: [developer tools, CLI, automation, AI agents, API, open source]
+
+# ---------------------------------------------------------------------------
+# Hard filters. Anything matching these is dropped before the agent ever
+# reads it, which keeps the overnight run cheap.
+# ---------------------------------------------------------------------------
+avoid:
+  tech:     [Solidity, Web3, blockchain, WordPress, PHP]
+  keywords: [unpaid, equity only, commission only, "no budget"]
+
+# ---------------------------------------------------------------------------
+# How much work to do per night. Discovery is free; the agent stage costs
+# tokens, so this caps the spend.
+# ---------------------------------------------------------------------------
+run:
+  max_deep_reviews: 12       # opportunities the agent reads properly
+  max_drafts: 3              # applications it actually writes

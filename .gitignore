@@ -1,0 +1,22 @@
+# ---------------------------------------------------------------
+# Nightly run output. Contains drafted applications and your notes.
+# ---------------------------------------------------------------
+run/
+*.log
+
+# Personal data
+profile.yaml
+!profile.example.yaml
+
+# Secrets — API tokens live here, never in the repo
+.env
+.env.*
+!.env.example
+
+# Caches
+.cache/
+node_modules/
+npm-debug.log*
+
+# Local agent state
+.claude/settings.local.json

@@ -1,0 +1,15 @@
+{
+  "name": "nightshift",
+  "version": "0.1.0",
+  "description": "An overnight agent that finds developer opportunities, works out which are worth your time, and drafts the applications before you wake up.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "discover": "node tools/discover.mjs",
+    "report": "node tools/report.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "engines": { "node": ">=18" }
+}
