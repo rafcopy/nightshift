@@ -125,10 +125,6 @@ export function score(opp, profile) {
       reasons.push("remote");
     }
   }
-
-  // Only surface types the profile asked for.
-  if (Array.isArray(wants.types) && !wants.types.includes(opp.type)) points -= 12;
-
   return { points: Math.round(points * 10) / 10, reasons };
 }
 
@@ -136,13 +132,23 @@ export function score(opp, profile) {
 export function rank(opportunities, profile) {
   const dropped = [];
   const kept = [];
+  const wants = profile.wants ?? {};
 
   for (const opp of opportunities) {
+    if (Array.isArray(wants.types) && !wants.types.includes(opp.type)) {
+      dropped.push({
+        ...opp,
+        dropped_because: `type "${opp.type}" is not requested`,
+      });
+      continue;
+    }
+
     const excluded = isExcluded(opp, profile) ?? meetsValueFloor(opp, profile);
     if (excluded) { dropped.push({ ...opp, dropped_because: excluded }); continue; }
 
     const { points, reasons } = score(opp, profile);
     if (points <= 0) { dropped.push({ ...opp, dropped_because: "no skill or interest overlap" }); continue; }
+
     kept.push({ ...opp, score: points, score_reasons: reasons });
   }
 
