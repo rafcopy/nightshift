@@ -16,6 +16,11 @@
 
 const lower = (s) => String(s ?? "").toLowerCase();
 
+// Whole-term match. Lookarounds rather than \b, because \b needs a word
+// character on one side, so "C++", "C#" and ".NET" never matched anything.
+const term = (t) =>
+  new RegExp(`(?<![a-z0-9])${lower(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9])`);
+
 function haystack(opp) {
   return lower([opp.title, opp.description, (opp.tags ?? []).join(" "), opp.org].join(" \n "));
 }
@@ -26,8 +31,8 @@ export function isExcluded(opp, profile) {
   const avoid = profile.avoid ?? {};
 
   for (const t of avoid.tech ?? []) {
-    // Word-boundary match so "Go" does not hit "Google".
-    if (new RegExp(`\\b${lower(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(hay)) {
+    // Whole-term match so "Go" does not hit "Google".
+    if (term(t).test(hay)) {
       return `avoids ${t}`;
     }
   }
@@ -66,8 +71,7 @@ export function score(opp, profile) {
 
   // Skill overlap. Strong skills are what you can actually be paid for today.
   const hit = (list, weight, label) => {
-    const found = (list ?? []).filter((s) =>
-      new RegExp(`\\b${lower(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(hay));
+    const found = (list ?? []).filter((s) => term(s).test(hay));
     if (found.length) {
       points += weight * found.length;
       reasons.push(`${label}: ${found.slice(0, 4).join(", ")}`);
